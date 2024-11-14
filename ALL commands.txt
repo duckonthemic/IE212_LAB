@@ -1,0 +1,101 @@
+CREATE TABLE InternalEmployee (
+    ID INT,
+    Name STRING,
+    Salary FLOAT,
+    Department STRING,
+    Age INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+
+LOAD DATA INPATH '/user/cloudera/inputLAB/EmployeeInfo.csv' INTO TABLE InternalEmployee;
+
+SELECT Name AS EmpName, Age AS EmpAge FROM InternalEmployee WHERE Salary > 2000;
+
+INSERT INTO TABLE InternalEmployee VALUES (20029, 'Quang', 1000, 'Support', 20);
+
+CREATE TABLE EmployeePartition (
+    ID INT,
+    Name STRING,
+    Salary FLOAT,
+    Age INT
+)
+PARTITIONED BY (Department STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+SET hive.exec.dynamic.partition = true;
+SET hive.exec.dynamic.partition.mode = nonstrict;
+
+INSERT INTO TABLE EmployeePartition PARTITION (Department)
+SELECT ID, Name, Salary, Age, Department FROM InternalEmployee;
+
+SELECT * FROM EmployeePartition;
+
+CREATE DATABASE EmployeeInfo;
+USE EmployeeInfo;
+CREATE TABLE Employee (
+    ID INT,
+    Name VARCHAR(50),
+    Salary FLOAT,
+    Department VARCHAR(50),
+    Age INT
+);
+
+sqoop export \
+--connect jdbc:mysql://localhost/EmployeeInfo \
+--username root \
+--password your_password \
+--table Employee \
+--export-dir /user/cloudera/inputLAB/EmployeeNoheader.csv \
+--fields-terminated-by ','
+
+SELECT * FROM Employee WHERE Salary > 1500;
+
+sqoop import \
+--connect jdbc:mysql://localhost/EmployeeInfo \
+--username root \
+--password your_password \
+--table Employee \
+--columns "ID,Name,Salary" \
+--target-dir /user/cloudera/Employee2000plus \
+--fields-terminated-by ','
+
+hdfs dfs -cat /user/cloudera/Employee2000plus/*
+
+PigEmployee = LOAD '/user/cloudera/inputLAB/EmployeeNoheader.csv' USING PigStorage(',') 
+              AS (ID:int, Name:chararray, Salary:float, Department:chararray, Age:int);
+
+DUMP PigEmployee;
+
+CREATE TABLE HiveEmployee2000plus (
+    ID INT,
+    Name STRING,
+    Salary FLOAT,
+    Department STRING,
+    Age INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+STORE PigEmployee2000plus INTO 'HiveEmployee2000plus' USING org.apache.hive.hcatalog.pig.HCatStorer();
+
+SELECT * FROM HiveEmployee2000plus;
+
+PigEmployeeLowercase = FOREACH PigEmployee2000plus GENERATE 
+                       ID AS id, 
+                       Name AS name, 
+                       Salary AS salary, 
+                       Department AS department, 
+                       Age AS age;
+STORE PigEmployeeLowercase INTO 'HiveEmployee2000plus' USING org.apache.hive.hcatalog.pig.HCatStorer();
+
+PigEmployeeNoschema = LOAD '/user/cloudera/inputLAB/EmployeeNoheader.csv' USING PigStorage(',');
+
+BonusSalary = FOREACH PigEmployeeNoschema GENERATE $0 AS ID, $1 AS Name, ($2 + 500) AS Salary, $3 AS Department, $4 AS Age;
+
+DUMP BonusSalary;
