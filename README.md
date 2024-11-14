@@ -15,5 +15,8 @@ MSSV : 22520807 - Hoàng Bảo Long
   <tr><th>Môn Học     </th><td>Công nghệ Dữ liệu lớn</td></tr>
   <tr><th>Lớp         </th><td>IE212_P11               </td></tr>
   <tr><th>GV Lý Thuyết</th><td>Đỗ Trọng Hợp        </td></tr>
-  <tr><th>GV Thực Hành</th><td>\Khánh Trần        </td></tr>
+  <tr><th>GV Thực Hành</th><td>Khánh Trần        </td></tr>
 </table>
+
+# How to use 
+Chọn branch để xem từng LAB
